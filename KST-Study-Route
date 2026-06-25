@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KST Study Route - Final Update</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
+    <style>
+        :root {
+            --primary: #007AFF;
+            --primary-grad: linear-gradient(135deg, #007AFF, #00C6FF);
+            --manager: #34495e;
+            --bg-color: #F2F2F7;
+            --card-bg: #FFFFFF;
+            --text-main: #333333;
+            --text-sub: #8E8E93;
+            --success: #34C759;
+            --warning: #FF9500;
+            --danger: #FF3B30;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Noto Sans JP', sans-serif; background-color: var(--bg-color); color: var(--text-main); -webkit-font-smoothing: antialiased; }
+        .app-container { max-width: 480px; margin: 0 auto; background-color: var(--bg-color); height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.05); position: relative; overflow: hidden; }
+
+        /* ヘッダー */
+        .header { background: var(--primary-grad); color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; transition: 0.3s; z-index: 10; box-shadow: 0 4px 12px rgba(0,122,255,0.2); }
+        .header.manager-mode { background: #2C3E50; box-shadow: 0 4px 12px rgba(44,62,80,0.2); }
+        .header h1 { font-size: 1.2rem; font-weight: 700; }
+        .btn-logout { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; cursor: pointer; backdrop-filter: blur(4px); }
+
+        /* ログイン画面 */
+        .login-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-grad); display: flex; justify-content: center; align-items: center; z-index: 100; flex-direction: column; padding: 20px; }
+        .login-box { background: var(--card-bg); padding: 25px; border-radius: 24px; width: 100%; max-width: 360px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+        .login-box h2 { text-align: center; color: var(--primary); font-size: 1.4rem; margin-bottom: 24px; font-weight: 700; }
+        .login-section { background: #F8F9FA; padding: 16px; border-radius: 16px; margin-bottom: 16px; border: 1px solid #E5E5EA; }
+        .section-label { font-weight: 700; font-size: 0.95rem; margin-bottom: 12px; display: block; color: var(--text-main); }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.8rem; color: var(--text-sub); margin-bottom: 4px; font-weight: 500; }
+        .form-group select, .form-group input { width: 100%; padding: 12px; border: 1.5px solid #E5E5EA; border-radius: 12px; font-size: 0.95rem; background: #fff; outline: none; transition: 0.2s; }
+        .form-group input:focus, .form-group select:focus { border-color: var(--primary); }
+        .btn-login { width: 100%; padding: 14px; color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 1rem; cursor: pointer; }
+        .btn-login.student { background: var(--primary); }
+        .btn-login.manager { background: var(--manager); }
+
+        /* メインエリア */
+        .main-content { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 100px; }
+        .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end; color: #1c1c1e; }
+        
+        /* ガイドパネル */
+        .guide-panel { background: #E8F4FD; border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 2px solid #BBDEFB; }
+        .guide-panel h3 { color: #1976D2; font-size: 1rem; margin-bottom: 8px; font-weight: 700; }
+        .guide-panel ul { padding-left: 0; font-size: 0.8rem; color: #444; line-height: 1.6; list-style-type: none; }
+        .guide-panel li { margin-bottom: 10px; background: #FFF; padding: 12px; border-radius: 8px; border: 1px solid #E3F2FD;}
+        .guide-panel li strong { color: var(--primary); display: block; margin-bottom: 4px; font-size: 0.85rem;}
+        .guide-panel li span { display: block; color: #D32F2F; font-weight: bold; margin-top: 6px; font-size: 0.75rem; background: #FFEBEE; padding: 6px; border-radius: 6px;}
+
+        /* カード共通 */
+        .card { background: var(--card-bg); border-radius: 20px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #F0F0F0; }
+        
+        /* 教材カード */
+        .subject-card.completed { opacity: 0.8; background: #F4FBf5; border-color: #A5D6A7; }
+        .subject-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .subject-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;}
+        .lap-badge { font-size: 0.75rem; background: #E5E5EA; color: #333; padding: 2px 8px; border-radius: 8px; font-weight: 700; }
+        .btn-edit { background: none; border: none; color: var(--text-sub); font-size: 1rem; cursor: pointer; }
+        
+        .cycle-badge { font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; font-weight: 700; white-space: nowrap; }
+        .cycle-badge.advance { background: #E3F2FD; color: #1976D2; }
+        .cycle-badge.review { background: #FFF3E0; color: #F57C00; }
+        
+        .task-detail { background: #F8F9FA; padding: 12px; border-radius: 12px; margin-bottom: 12px; font-size: 0.9rem; color: #444; display: flex; justify-content: space-between; align-items: center; }
+        .task-detail strong { font-size: 1.2rem; color: var(--primary); }
+
+        /* カウンターUI */
+        .counter-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; background: #fff; border: 1px solid #E5E5EA; padding: 8px 12px; border-radius: 12px; }
+        .counter-label { font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+        .badge-tri { background: var(--warning); color: #fff; padding: 2px 6px; border-radius: 6px; font-size: 0.7rem; }
+        .badge-cross { background: var(--danger); color: #fff; padding: 2px 6px; border-radius: 6px; font-size: 0.7rem; }
+        .stepper { display: flex; align-items: center; gap: 12px; }
+        .btn-step { width: 32px; height: 32px; border-radius: 10px; border: none; background: #F2F2F7; font-size: 1.2rem; font-weight: bold; color: var(--text-main); cursor: pointer; }
+        .count-val { font-size: 1.1rem; font-weight: 700; width: 20px; text-align: center; }
+
+        /* ボタン */
+        .btn-complete { width: 100%; padding: 14px; background: var(--success); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 10px rgba(52,199,89,0.2); }
+        .btn-complete.disabled { background: #D1D1D6; box-shadow: none; cursor: not-allowed; }
+        .btn-next-step { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,122,255,0.2); margin-top: 10px; }
+        .btn-undo { width: 100%; padding: 10px; background: transparent; border: none; color: var(--text-sub); border-radius: 12px; font-weight: 700; font-size: 0.85rem; cursor: pointer; margin-top: 10px; text-decoration: underline; }
+        .btn-add-subject { width: 100%; padding: 16px; background: transparent; border: 2px dashed #C7C7CC; color: #8E8E93; border-radius: 16px; font-weight: 700; font-size: 0.95rem; cursor: pointer; margin-top: 10px; }
+
+        /* モーダル */
+        .modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 50; padding: 20px; backdrop-filter: blur(3px); }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--card-bg); width: 100%; border-radius: 20px; padding: 24px; max-height: 90vh; overflow-y: auto; }
+        .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+        .btn-cancel, .btn-submit { flex: 1; padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
+        .btn-cancel { background: #F2F2F7; color: var(--text-main); }
+        .btn-submit { background: var(--primary); color: white; }
+        .btn-delete { background: #FFEBEE; color: #D32F2F; width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; }
+        .btn-delete-student { background: transparent; border: 1px solid #FF3B30; color: #FF3B30; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
+
+        /* プログレスバー */
+        .progress-box { background: #F8F9FA; padding: 12px; border-radius: 12px; margin-top: 10px; }
+        .progress-header { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: bold; margin-bottom: 8px; color: #555; }
+        .progress-bg { background: #E5E5EA; height: 10px; border-radius: 5px; overflow: hidden; }
+        .progress-fill { background: var(--primary); height: 100%; width: 0%; border-radius: 5px; transition: width 0.5s; }
+
+        /* ボトムナビ */
+        .bottom-nav { position: absolute; bottom: 0; width: 100%; background: rgba(255,255,255,0.95); border-top: 1px solid #E5E5EA; display: flex; justify-content: space-around; padding: 10px 0 20px 0; z-index: 10; backdrop-filter: blur(10px); }
+        .nav-item { text-align: center; font-size: 0.7rem; color: var(--text-sub); cursor: pointer; flex: 1; font-weight: 700; transition: 0.2s; }
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 1.4rem; display: block; margin-bottom: 2px; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <div id="login-screen" class="login-overlay">
+        <div class="login-box">
+            <h2>KST Study Route</h2>
+            <div class="login-section">
+                <span class="section-label student">👦 生徒ログイン</span>
+                <div class="form-group"><select id="input-userid"></select></div>
+                <div class="form-group"><input type="password" id="input-student-pass" placeholder="パスワード"></div>
+                <button class="btn-login student" onclick="App.loginStudent()">学習を始める</button>
+            </div>
+            <div class="login-section manager">
+                <span class="section-label manager">👨‍🏫 指導者ログイン</span>
+                <div class="form-group"><input type="password" id="input-manager-pass" placeholder="管理者パスワード"></div>
+                <button class="btn-login manager" onclick="App.loginManager()">ダッシュボードへ</button>
+            </div>
+        </div>
+    </div>
+
+    <header class="header" id="main-header">
+        <h1 id="header-title">KST Study Route</h1>
+        <button class="btn-logout" onclick="App.logout()">ログアウト</button>
+    </header>
+
+    <main class="main-content">
+        
+        <div id="view-student" style="display: none;">
+            
+            <div id="tab-today" class="tab-content active">
+                <div style="font-size: 0.9rem; margin-bottom: 12px; font-weight: 700;">
+                    こんにちは、<span id="student-name-display" style="color:var(--primary);"></span> さん！
+                </div>
+                
+                <div class="guide-panel">
+                    <h3>💡 KSTメソッド 学習の進め方</h3>
+                    <ul>
+                        <li><strong>📝 ① 基本サイクル</strong>
+                            1〜4日目は新しい範囲を進め、5〜6日目は今週の弱点（△・×）の総復習をします。
+                        </li>
+                        <li><strong>🔥 ② 〇はスルー！△と×だけ解き直す</strong>
+                            1周目でできた問題（〇）はもうやらなくてOK！<br>
+                            ダメだった問題の数を記録したら、<b>印をつけた問題だけを、自力で解ける(○)ようになるまで何度でも解き直してください。</b>
+                        </li>
+                        <li><strong>😌 ③ 遅れたら「途中」で完了してOK！</strong>
+                            予定の範囲が終わらなくても、<b>「今日完璧にできたところまで」のページ数で完了してOK！</b><br>
+                            次の日はその続きから始まります。遅れた分のノルマはシステムが自動計算するから、焦らず「完璧にすること」と「サイクル」を守ろう！
+                        </li>
+                        <li><strong>👑 ④ 最低3周で「凄さ」を実感する！</strong>
+                            <span>1周目は自分の弱点と向き合うので一番時間がかかってしんどいです。<br>
+                            でも、1周目をクリアした後の2周目、3周目で<b>「一瞬で思い出せる！」という圧倒的な成長とこのシステムの凄さを実感</b>できます。まずは1周目を乗り越えよう！</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div id="student-subject-list"></div>
+                <button class="btn-add-subject" onclick="App.openSubjectModal('add')">＋ 新しい教材・テスト範囲を追加する</button>
+            </div>
+
+            <div id="tab-review" class="tab-content">
+                <div class="section-title"><span>🔄 全教科の弱点リスト</span></div>
+                <div style="font-size:0.85rem; color:var(--text-sub); margin-bottom:15px;">
+                    ※5日目・6日目の復習日に、ここにある問題を自力で解ける状態にします。
+                </div>
+                <div id="review-list-container"></div>
+            </div>
+
+            <div id="tab-progress" class="tab-content">
+                <div class="section-title"><span>📊 全教科の進捗状況</span></div>
+                <div id="progress-list-container"></div>
+            </div>
+
+        </div>
+
+        <div id="view-manager" style="display: none;">
+            <div class="card" style="border-left: 6px solid var(--manager);">
+                <h3 style="margin-bottom: 12px; font-size:1.05rem;">👤 新規生徒アカウント発行</h3>
+                <div class="form-group"><input type="text" id="new-user-name" placeholder="生徒の名前"></div>
+                <div class="form-group"><input type="text" id="new-user-pass" placeholder="ログインパスワード"></div>
+                <button onclick="App.createStudentAccount()" style="width:100%; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:12px; font-weight:bold;">アカウントを作成</button>
+            </div>
+
+            <h3 style="margin:20px 0 10px 0; font-size:1.1rem;">📊 生徒進捗ダッシュボード</h3>
+            <button onclick="App.advanceSystemDay()" style="width:100%; padding:12px; background:#E8F4FD; border:2px solid #90CAF9; color:#1976D2; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:15px;">
+                ⏭️ 日付を1日進める (遅れは自動再計算されます)
+            </button>
+
+            <div id="manager-student-list"></div>
+            <button onclick="App.resetAllData()" style="width:100%; padding:10px; margin-top:30px; background:transparent; border:1px solid #FF3B30; border-radius:12px; color:#FF3B30; font-weight:bold; cursor:pointer;">🗑️ 全データを初期化する</button>
+        </div>
+    </main>
+
+    <div class="modal" id="modal-subject">
+        <div class="modal-content">
+            <h3 id="modal-sub-title" style="margin-bottom:15px; color:var(--primary);">教材の設定</h3>
+            <p style="font-size:0.8rem; color:var(--text-sub); margin-bottom:15px;">周回数と目標日から逆算して、1日のペースを自動調整します。</p>
+            <input type="hidden" id="edit-sub-index" value="">
+            <div class="form-group"><label>教材名 / テスト範囲</label><input type="text" id="sub-title" placeholder="例: 英語ワーク"></div>
+            
+            <div style="display:flex; gap:10px;">
+                <div class="form-group" style="flex:1"><label>総ページ・問数</label><input type="number" id="sub-total" placeholder="例: 80"></div>
+                <div class="form-group" style="flex:1">
+                    <label>目標周回数</label>
+                    <select id="sub-laps">
+                        <option value="1">1周</option>
+                        <option value="2" selected>2周</option>
+                        <option value="3">3周</option>
+                        <option value="4">4周</option>
+                        <option value="5">5周</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group"><label>完了目標日</label><input type="date" id="sub-date"></div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="App.closeSubjectModal()">キャンセル</button>
+                <button class="btn-submit" onclick="App.saveSubject()">保存する</button>
+            </div>
+            <button id="btn-delete-sub" class="btn-delete" style="display:none;" onclick="App.deleteSubject()">この教材を削除する</button>
+        </div>
+    </div>
+
+    <nav class="bottom-nav" id="student-nav" style="display: none;">
+        <div class="nav-item active" onclick="App.switchTab('today', this)"><span class="nav-icon">📝</span>今日</div>
+        <div class="nav-item" onclick="App.switchTab('review', this)"><span class="nav-icon">🔄</span>復習</div>
+        <div class="nav-item" onclick="App.switchTab('progress', this)"><span class="nav-icon">📊</span>進捗</div>
+    </nav>
+</div>
+
+<script>
+    const ADMIN_PASS = "admin999";
+
+    // データベース (v18)
+    let db = JSON.parse(localStorage.getItem('kst_v18_data'));
+    if (!db) { db = { users: {}, subjects: {} }; }
+    let currentUser = localStorage.getItem('kst_v18_user');
+
+    const App = {
+        init: function() {
+            this.renderLoginDropdown();
+            if (!currentUser) document.getElementById('login-screen').style.display = 'flex';
+            else if (currentUser === 'manager') this.renderManagerUI();
+            else this.renderStudentUI();
+        },
+
+        saveDB: function() {
+            localStorage.setItem('kst_v18_data', JSON.stringify(db));
+            localStorage.setItem('kst_v18_user', currentUser);
+        },
+
+        renderLoginDropdown: function() {
+            const select = document.getElementById('input-userid');
+            select.innerHTML = '<option value="">自分の名前を選んでください</option>';
+            let hasUsers = false;
+            for (let uid in db.users) {
+                select.innerHTML += `<option value="${uid}">${db.users[uid].name}</option>`;
+                hasUsers = true;
+            }
+            if(!hasUsers) select.innerHTML = '<option value="">(先生からアカウントをもらってください)</option>';
+        },
+
+        loginStudent: function() {
+            const uid = document.getElementById('input-userid').value;
+            const pass = document.getElementById('input-student-pass').value;
+            if (!uid) return alert("名前を選択してください。");
+            if (db.users[uid].pass !== pass) return alert("パスワードが間違っています。");
+            currentUser = uid;
+            this.saveDB();
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('input-student-pass').value = ''; 
+            this.renderStudentUI();
+        },
+
+        loginManager: function() {
+            const pass = document.getElementById('input-manager-pass').value;
+            if (pass !== ADMIN_PASS) return alert("管理者パスワードが間違っています。");
+            currentUser = 'manager';
+            this.saveDB();
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('input-manager-pass').value = ''; 
+            this.renderManagerUI();
+        },
+
+        logout: function() {
+            currentUser = null;
+            this.saveDB();
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-today').classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelector('.nav-item').classList.add('active');
+            document.getElementById('view-student').style.display = 'none';
+            document.getElementById('view-manager').style.display = 'none';
+            document.getElementById('student-nav').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'flex';
+        },
+
+        switchTab: function(tabName, element) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            element.classList.add('active');
+            if(currentUser !== 'manager') this.renderStudentUI();
+        },
+
+        openSubjectModal: function(mode, index = null) {
+            document.getElementById('modal-subject').classList.add('active');
+            if (mode === 'add') {
+                document.getElementById('modal-sub-title').innerText = "新しい教材を登録";
+                document.getElementById('edit-sub-index').value = "";
+                document.getElementById('sub-title').value = "";
+                document.getElementById('sub-total').value = "";
+                document.getElementById('sub-laps').value = "3";
+                document.getElementById('sub-date').value = "";
+                document.getElementById('btn-delete-sub').style.display = 'none';
+            } else {
+                document.getElementById('modal-sub-title').innerText = "教材の編集";
+                document.getElementById('edit-sub-index').value = index;
+                const sub = db.subjects[currentUser][index];
+                document.getElementById('sub-title').value = sub.title;
+                document.getElementById('sub-total').value = sub.totalVol;
+                document.getElementById('sub-laps').value = sub.laps || 1;
+                document.getElementById('sub-date').value = sub.targetDate;
+                document.getElementById('btn-delete-sub').style.display = 'block';
+            }
+        },
+        closeSubjectModal: function() { document.getElementById('modal-subject').classList.remove('active'); },
+
+        // 周回ペース自動調整ロジック
+        calculateQuota: function(totalVol, completedVol, targetDateStr, totalLaps, currentLap) {
+            const targetDate = new Date(targetDateStr);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const diffDays = Math.max(1, Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24)));
+            const realWorkDays = Math.max(1, Math.floor(diffDays * (4 / 7)));
+            
+            let remainingWeight = 0;
+            for (let i = currentLap; i <= totalLaps; i++) {
+                remainingWeight += (i === 1 && totalLaps > 1) ? 2 : 1;
+            }
+            if (totalLaps === 1) remainingWeight = 1;
+            
+            let currentWeight = (currentLap === 1 && totalLaps > 1) ? 2 : 1;
+            if (totalLaps === 1) currentWeight = 1;
+            
+            const lapDays = Math.max(1, Math.floor(realWorkDays * (currentWeight / remainingWeight)));
+            const remainingVol = Math.max(0, totalVol - completedVol);
+            
+            if(remainingVol === 0) return 0;
+            return Math.max(1, Math.ceil(remainingVol / lapDays));
+        },
+
+        saveSubject: function() {
+            const title = document.getElementById('sub-title').value;
+            const total = parseInt(document.getElementById('sub-total').value);
+            const laps = parseInt(document.getElementById('sub-laps').value);
+            const dateStr = document.getElementById('sub-date').value;
+            const editIndex = document.getElementById('edit-sub-index').value;
+
+            if(!title || !total || !dateStr) return alert('全ての項目を入力してください。');
+            if(!db.subjects[currentUser]) db.subjects[currentUser] = [];
+
+            if (editIndex === "") {
+                const quota = this.calculateQuota(total, 0, dateStr, laps, 1);
+                db.subjects[currentUser].push({
+                    title: title, totalVol: total, targetDate: dateStr, laps: laps, currentLap: 1, quota: quota,
+                    completedVol: 0, cycleDay: 1, tri: 0, cross: 0, isCompletedToday: false, history: null, step: 1
+                });
+            } else {
+                const sub = db.subjects[currentUser][editIndex];
+                sub.title = title;
+                sub.totalVol = total;
+                sub.targetDate = dateStr;
+                sub.laps = laps;
+                sub.quota = this.calculateQuota(total, sub.completedVol, dateStr, sub.laps, sub.currentLap || 1);
+            }
+
+            this.saveDB();
+            this.closeSubjectModal();
+            this.renderStudentUI();
+        },
+
+        deleteSubject: function() {
+            const editIndex = document.getElementById('edit-sub-index').value;
+            if (confirm("本当にこの教材を削除しますか？\n進捗データもすべて消えます。")) {
+                db.subjects[currentUser].splice(editIndex, 1);
+                this.saveDB();
+                this.closeSubjectModal();
+                this.renderStudentUI();
+            }
+        },
+
+        goToStep2: function(subIndex) {
+            db.subjects[currentUser][subIndex].step = 2;
+            this.saveDB();
+            this.renderStudentUI();
+        },
+        backToStep1: function(subIndex) {
+            db.subjects[currentUser][subIndex].step = 1;
+            this.saveDB();
+            this.renderStudentUI();
+        },
+        updateCount: function(subIndex, type, change) {
+            let sub = db.subjects[currentUser][subIndex];
+            if(sub.isCompletedToday) return;
+            sub[type] += change;
+            if(sub[type] < 0) sub[type] = 0;
+            this.saveDB();
+            this.renderStudentUI(); 
+        },
+
+        // --- 途中保存対応の完了処理 ---
+        completeSubject: function(subIndex) {
+            let sub = db.subjects[currentUser][subIndex];
+            if(sub.isCompletedToday) return;
+
+            let isAdvance = (sub.cycleDay >= 1 && sub.cycleDay <= 4);
+            
+            if (isAdvance) {
+                let defaultEnd = Math.min(sub.completedVol + sub.quota, sub.totalVol);
+                let msg = `【最終確認】\n印をつけた問題以外は、すべて自力で解ける(○)状態になりましたか？\n\n今日完璧にした最後のページ（または問題番号）を入力してください。\n（※時間がなくて途中で終わった場合は、その数字を入れてください）`;
+                
+                let input = prompt(msg, defaultEnd);
+                if (input === null) return; // キャンセル
+                
+                let newVol = parseInt(input);
+                if (isNaN(newVol) || newVol < sub.completedVol || newVol > sub.totalVol) {
+                    alert("正しい数値を入力してください。");
+                    return;
+                }
+                
+                sub.history = { 
+                    completedVol: sub.completedVol, tri: sub.tri, cross: sub.cross, 
+                    step: sub.step, currentLap: sub.currentLap || 1, quota: sub.quota 
+                };
+                
+                sub.isCompletedToday = true;
+                sub.completedVol = newVol; // 途中で終わったページを記録
+                
+                if(sub.completedVol >= sub.totalVol) {
+                    sub.completedVol = sub.totalVol;
+                    const totalLaps = sub.laps || 1;
+                    if ((sub.currentLap || 1) < totalLaps) {
+                        sub.currentLap = (sub.currentLap || 1) + 1;
+                        sub.completedVol = 0; 
+                        sub.quota = this.calculateQuota(sub.totalVol, sub.completedVol, sub.targetDate, totalLaps, sub.currentLap);
+                        alert(`🎉 おめでとうございます！\n「${sub.title}」の ${sub.currentLap - 1}周目が完了しました！\n次回からはペースを上げて ${sub.currentLap}周目 に突入します！`);
+                    }
+                }
+                this.saveDB();
+                this.renderStudentUI();
+
+            } else {
+                let msg = `【最終確認】\n復習対象の問題はすべて完璧(○)になりましたか？\n(はいを押すとストックがリセットされます)`;
+                if(confirm(msg)) {
+                    sub.history = { 
+                        completedVol: sub.completedVol, tri: sub.tri, cross: sub.cross, 
+                        step: sub.step, currentLap: sub.currentLap || 1, quota: sub.quota 
+                    };
+                    sub.isCompletedToday = true;
+                    sub.tri = 0;
+                    sub.cross = 0;
+                    this.saveDB();
+                    this.renderStudentUI();
+                }
+            }
+        },
+
+        undoComplete: function(subIndex) {
+            let sub = db.subjects[currentUser][subIndex];
+            if(!sub.isCompletedToday) return;
+            if(confirm("完了を取り消して、解き直しの状態に戻しますか？")) {
+                sub.isCompletedToday = false;
+                if(sub.history) {
+                    sub.completedVol = sub.history.completedVol;
+                    sub.tri = sub.history.tri;
+                    sub.cross = sub.history.cross;
+                    sub.step = sub.history.step || 1;
+                    sub.currentLap = sub.history.currentLap;
+                    sub.quota = sub.history.quota;
+                }
+                this.saveDB();
+                this.renderStudentUI();
+            }
+        },
+
+        renderStudentUI: function() {
+            document.getElementById('main-header').classList.remove('manager-mode');
+            document.getElementById('header-title').innerText = "KST Study Route";
+            document.getElementById('view-student').style.display = 'block';
+            document.getElementById('student-nav').style.display = 'flex';
+
+            document.getElementById('student-name-display').innerText = db.users[currentUser].name;
+
+            const listContainer = document.getElementById('student-subject-list');
+            const reviewContainer = document.getElementById('review-list-container');
+            const progressContainer = document.getElementById('progress-list-container');
+            
+            listContainer.innerHTML = '';
+            reviewContainer.innerHTML = '';
+            progressContainer.innerHTML = '';
+
+            const subjects = db.subjects[currentUser] || [];
+            if(subjects.length === 0) {
+                listContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:20px 0;">まだ教材がありません。<br>下のボタンから追加してください。</p>';
+                reviewContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:20px 0;">教材がありません。</p>';
+                progressContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:20px 0;">教材がありません。</p>';
+                return;
+            }
+
+            let hasReview = false;
+
+            subjects.forEach((sub, index) => {
+                const cDay = sub.cycleDay;
+                let isAdvance = (cDay >= 1 && cDay <= 4);
+                let cycleBadge = isAdvance ? `<span class="cycle-badge advance">🚀 進行日 (${cDay}/4)</span>` : `<span class="cycle-badge review">🔄 復習日 (${cDay === 5 ? 1 : 2}/2)</span>`;
+                
+                const currentLap = sub.currentLap || 1;
+                const totalLaps = sub.laps || 1;
+                const lapBadge = `<span class="lap-badge">${currentLap}周目 / ${totalLaps}周</span>`;
+
+                let taskHtml = '';
+                if(isAdvance) {
+                    const startP = sub.completedVol + 1;
+                    const endP = Math.min(sub.completedVol + sub.quota, sub.totalVol);
+                    const step = sub.step || 1;
+
+                    taskHtml = `
+                        <div class="task-detail"><span>今日の範囲</span> <strong>P${startP} 〜 P${endP}</strong></div>
+                        
+                        <div style="display: ${step === 1 ? 'block' : 'none'};">
+                            <div style="font-size: 0.8rem; color: #1976D2; font-weight: bold; margin-bottom: 10px; background: #E3F2FD; padding: 10px; border-radius: 8px; text-align: center;">
+                                1. まず1周解いて、ダメだった問題の数を記録しよう👇
+                            </div>
+                            <div class="counter-area">
+                                <div class="counter-row">
+                                    <div class="counter-label"><span class="badge-tri">△</span> 説明不可</div>
+                                    <div class="stepper">
+                                        <button class="btn-step" onclick="App.updateCount(${index}, 'tri', -1)">-</button>
+                                        <div class="count-val">${sub.tri}</div>
+                                        <button class="btn-step" onclick="App.updateCount(${index}, 'tri', 1)">+</button>
+                                    </div>
+                                </div>
+                                <div class="counter-row">
+                                    <div class="counter-label"><span class="badge-cross">×</span> 解けない</div>
+                                    <div class="stepper">
+                                        <button class="btn-step" onclick="App.updateCount(${index}, 'cross', -1)">-</button>
+                                        <div class="count-val">${sub.cross}</div>
+                                        <button class="btn-step" onclick="App.updateCount(${index}, 'cross', 1)">+</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn-next-step" onclick="App.goToStep2(${index})">数を記録して「解き直し」へ進む ➡</button>
+                        </div>
+
+                        <div style="display: ${step === 2 ? 'block' : 'none'};">
+                            <div style="font-size: 0.85rem; color: #D32F2F; font-weight: bold; margin-bottom: 10px; background: #FFEBEE; padding: 12px; border-radius: 8px; text-align: center;">
+                                2. 解き直しモード 🔥<br>
+                                <span style="font-size: 0.75rem; color: #333; font-weight: normal; display: block; margin-top: 5px;">
+                                〇だった問題はスルーでOK！<br>印をつけた問題だけ、自力で解ける(○)ようになるまで解き直そう！
+                                </span>
+                            </div>
+                            <button class="btn-undo" onclick="App.backToStep1(${index})">↩ 記録した数を修正する</button>
+                        </div>
+                    `;
+                } else {
+                    taskHtml = `
+                        <div class="task-detail" style="background:#FFF3E0; color:#F57C00; display:block; text-align:center;">
+                            <strong>🔥 本を開いて総復習！</strong><br>
+                            <span style="font-size:0.8rem; color:#666; margin-top:5px; display:block;">
+                                今週の△と×を自力で解けるまでやり直そう。<br>
+                                <strong style="color:#D32F2F; margin-top:5px; display:block;">思い出すのが一番しんどいけど、ここが一番実力がつく瞬間！乗り越えよう！</strong>
+                            </span>
+                        </div>
+                    `;
+                }
+
+                let btnHtml = '';
+                if(sub.isCompletedToday) {
+                    btnHtml = `
+                        <button class="btn-complete disabled">🎉 今日のタスクは完了済み</button>
+                        <button class="btn-undo" onclick="App.undoComplete(${index})">🔄 完了を取り消す</button>
+                    `;
+                } else if (isAdvance && (sub.step || 1) === 1) {
+                    btnHtml = ''; 
+                } else {
+                    btnHtml = `<button class="btn-complete" onclick="App.completeSubject(${index})">✅ 完璧(○)になったので完了！</button>`;
+                }
+
+                listContainer.innerHTML += `
+                    <div class="card subject-card ${sub.isCompletedToday ? 'completed' : ''}">
+                        <div class="subject-header">
+                            <div class="subject-title">${sub.title} ${lapBadge} <button class="btn-edit" onclick="App.openSubjectModal('edit', ${index})">⚙️</button></div>
+                            ${cycleBadge}
+                        </div>
+                        <div style="${sub.isCompletedToday ? 'pointer-events: none;' : ''}">
+                            ${taskHtml}
+                        </div>
+                        ${btnHtml}
+                    </div>
+                `;
+
+                if(sub.tri > 0 || sub.cross > 0) {
+                    hasReview = true;
+                    reviewContainer.innerHTML += `
+                        <div class="card" style="border-left: 4px solid var(--warning);">
+                            <h4 style="color:var(--text-main); margin-bottom:10px;">${sub.title}</h4>
+                            <div style="display:flex; justify-content:space-around; text-align:center;">
+                                <div><span class="badge-tri">△</span><strong style="display:block; margin-top:5px; font-size:1.2rem; color:var(--warning);">${sub.tri}</strong></div>
+                                <div><span class="badge-cross">×</span><strong style="display:block; margin-top:5px; font-size:1.2rem; color:var(--danger);">${sub.cross}</strong></div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const targetDate = new Date(sub.targetDate);
+                const diffDays = Math.max(0, Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24)));
+                
+                const overallTotal = totalLaps * sub.totalVol;
+                const overallCompleted = ((currentLap - 1) * sub.totalVol) + sub.completedVol;
+                const pct = Math.floor((overallCompleted / overallTotal) * 100);
+
+                progressContainer.innerHTML += `
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                            <h4 style="color:var(--text-main); font-size:1rem;">${sub.title} ${lapBadge}</h4>
+                            <span style="font-size:0.8rem; color:var(--primary); font-weight:bold;">試験まで ${diffDays} 日</span>
+                        </div>
+                        <div class="progress-box">
+                            <div class="progress-header"><span>全体進捗率</span><span>${pct}%</span></div>
+                            <div class="progress-bg"><div class="progress-fill" style="width:${pct}%;"></div></div>
+                            <div style="text-align:right; font-size:0.8rem; color:var(--text-sub); margin-top:5px;">
+                                現在の周: ${sub.completedVol} / ${sub.totalVol} ページ
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            if(!hasReview) {
+                reviewContainer.innerHTML = '<div class="card" style="text-align:center; padding:30px 10px;"><h3 style="color:var(--success);">🎉 弱点ストックはゼロです！</h3><p style="font-size:0.85rem; color:var(--text-sub); margin-top:10px;">この調子で完璧な学習を続けましょう。</p></div>';
+            }
+        },
+
+        createStudentAccount: function() {
+            const name = document.getElementById('new-user-name').value;
+            const pass = document.getElementById('new-user-pass').value;
+            if(!name || !pass) return alert("名前とパスワードを入力してください");
+
+            const uid = 'u' + Date.now();
+            db.users[uid] = { name: name, pass: pass };
+            db.subjects[uid] = [];
+            
+            this.saveDB();
+            this.renderLoginDropdown();
+            this.renderManagerUI();
+
+            document.getElementById('new-user-name').value = '';
+            document.getElementById('new-user-pass').value = '';
+            alert(`${name} さんのアカウントを作成しました。\n生徒にパスワードを伝え、自分の画面から教材を登録させてください。`);
+        },
+
+        deleteStudent: function(uid) {
+            const studentName = db.users[uid].name;
+            if (confirm(`【警告】本当に ${studentName} さんの全データを削除しますか？`)) {
+                delete db.users[uid];
+                delete db.subjects[uid];
+                this.saveDB();
+                this.renderLoginDropdown();
+                this.renderManagerUI();
+            }
+        },
+
+        renderManagerUI: function() {
+            document.getElementById('main-header').classList.add('manager-mode');
+            document.getElementById('header-title').innerText = "KST Manager";
+            document.getElementById('view-student').style.display = 'none';
+            document.getElementById('view-manager').style.display = 'block';
+
+            const listContainer = document.getElementById('manager-student-list');
+            listContainer.innerHTML = '';
+
+            for(let uid in db.users) {
+                const uInfo = db.users[uid];
+                const subjects = db.subjects[uid] || [];
+                
+                let subHtml = '';
+                if(subjects.length === 0) {
+                    subHtml = '<div style="font-size:0.8rem; color:#888; text-align:center; padding:10px;">教材未登録</div>';
+                } else {
+                    subjects.forEach(sub => {
+                        let statusIcon = sub.isCompletedToday ? "✅" : "✏️";
+                        
+                        const currentLap = sub.currentLap || 1;
+                        const totalLaps = sub.laps || 1;
+                        const overallTotal = totalLaps * sub.totalVol;
+                        const overallCompleted = ((currentLap - 1) * sub.totalVol) + sub.completedVol;
+                        const percent = Math.floor((overallCompleted / overallTotal) * 100);
+
+                        subHtml += `
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:0.85rem; background:#F8F9FA; padding:10px; border-radius:8px;">
+                                <div style="font-weight:700; color:var(--manager);">
+                                    ${statusIcon} ${sub.title} 
+                                    <span style="font-size:0.7rem; font-weight:normal; color:#666;">(${currentLap}/${totalLaps}周)</span>
+                                </div>
+                                <div style="display:flex; gap:10px;">
+                                    <span>ノルマ:${sub.quota}</span>
+                                    <span style="color:var(--danger);">弱点:${sub.tri + sub.cross}</span>
+                                    <span style="color:#666;">${percent}%</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                listContainer.innerHTML += `
+                    <div class="card" style="border-left: 6px solid var(--manager);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <h3 style="font-size:1.1rem; margin:0;">${uInfo.name}</h3>
+                            <button class="btn-delete-student" onclick="App.deleteStudent('${uid}')">🗑️ 削除</button>
+                        </div>
+                        <div style="margin-top:12px; border-top:1px solid #eee; padding-top:12px;">
+                            ${subHtml}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if(Object.keys(db.users).length === 0) {
+                listContainer.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">まだ生徒が登録されていません。</p>';
+            }
+        },
+
+        // --- 毎日必ず最新の進捗に合わせて再計算する ---
+        advanceSystemDay: function() {
+            if(confirm("日付を進めますか？\n（毎日の進捗に合わせて、各生徒のノルマが最新の状態に自動再計算されます）")) {
+                for(let uid in db.subjects) {
+                    db.subjects[uid].forEach(sub => {
+                        // 進行日なら常に最新のcompletedVolから次回ノルマを再計算
+                        if(sub.cycleDay >= 1 && sub.cycleDay <= 4) {
+                            sub.quota = this.calculateQuota(sub.totalVol, sub.completedVol, sub.targetDate, sub.laps || 1, sub.currentLap || 1);
+                        }
+                        sub.isCompletedToday = false;
+                        sub.step = 1; 
+                        sub.cycleDay += 1;
+                        if(sub.cycleDay > 7) sub.cycleDay = 1;
+                    });
+                }
+                this.saveDB();
+                this.renderManagerUI();
+                alert("翌日になりました！\n生徒のノルマが最新の状況に合わせて自動計算されました。");
+            }
+        },
+
+        resetAllData: function() {
+            if(confirm("【警告】すべてのアカウントと進捗データを完全に消去しますか？")) {
+                localStorage.removeItem('kst_v18_data');
+                localStorage.removeItem('kst_v18_user');
+                location.reload();
+            }
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => { App.init(); });
+</script>
+</body>
+</html>
